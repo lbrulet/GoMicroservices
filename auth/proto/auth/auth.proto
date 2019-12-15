@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package go.micro.api.auth;
+import "github.com/lbrulet/GoMicroservices/users/proto/users/users.proto";
 
 service Auth {
 	rpc Login(LoginRequest) returns (Response) {}
@@ -19,6 +20,5 @@ message RegisterRequest {
 }
 
 message Response {
-	bool success = 1;
-	string data = 2;
+	go.micro.srv.users.User data = 1;
 }

@@ -6,6 +6,7 @@ package go_micro_api_auth
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	_ "github.com/lbrulet/GoMicroservices/users/proto/users"
 	math "math"
 )
 

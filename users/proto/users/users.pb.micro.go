@@ -34,10 +34,8 @@ var _ server.Option
 // Client API for Users service
 
 type UsersService interface {
-	Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
-	Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Users_StreamService, error)
-	PingPong(ctx context.Context, opts ...client.CallOption) (Users_PingPongService, error)
-	Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*User, error)
+	Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*UserResponse, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*UserResponse, error)
 }
 
 type usersService struct {
@@ -58,9 +56,9 @@ func NewUsersService(name string, c client.Client) UsersService {
 	}
 }
 
-func (c *usersService) Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error) {
-	req := c.c.NewRequest(c.name, "Users.Call", in)
-	out := new(Response)
+func (c *usersService) Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*UserResponse, error) {
+	req := c.c.NewRequest(c.name, "Users.Create", in)
+	out := new(UserResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -68,99 +66,9 @@ func (c *usersService) Call(ctx context.Context, in *Request, opts ...client.Cal
 	return out, nil
 }
 
-func (c *usersService) Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Users_StreamService, error) {
-	req := c.c.NewRequest(c.name, "Users.Stream", &StreamingRequest{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.Send(in); err != nil {
-		return nil, err
-	}
-	return &usersServiceStream{stream}, nil
-}
-
-type Users_StreamService interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Recv() (*StreamingResponse, error)
-}
-
-type usersServiceStream struct {
-	stream client.Stream
-}
-
-func (x *usersServiceStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *usersServiceStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *usersServiceStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *usersServiceStream) Recv() (*StreamingResponse, error) {
-	m := new(StreamingResponse)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *usersService) PingPong(ctx context.Context, opts ...client.CallOption) (Users_PingPongService, error) {
-	req := c.c.NewRequest(c.name, "Users.PingPong", &Ping{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &usersServicePingPong{stream}, nil
-}
-
-type Users_PingPongService interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*Ping) error
-	Recv() (*Pong, error)
-}
-
-type usersServicePingPong struct {
-	stream client.Stream
-}
-
-func (x *usersServicePingPong) Close() error {
-	return x.stream.Close()
-}
-
-func (x *usersServicePingPong) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *usersServicePingPong) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *usersServicePingPong) Send(m *Ping) error {
-	return x.stream.Send(m)
-}
-
-func (x *usersServicePingPong) Recv() (*Pong, error) {
-	m := new(Pong)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *usersService) Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*User, error) {
-	req := c.c.NewRequest(c.name, "Users.Create", in)
-	out := new(User)
+func (c *usersService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*UserResponse, error) {
+	req := c.c.NewRequest(c.name, "Users.Login", in)
+	out := new(UserResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -171,18 +79,14 @@ func (c *usersService) Create(ctx context.Context, in *CreateRequest, opts ...cl
 // Server API for Users service
 
 type UsersHandler interface {
-	Call(context.Context, *Request, *Response) error
-	Stream(context.Context, *StreamingRequest, Users_StreamStream) error
-	PingPong(context.Context, Users_PingPongStream) error
-	Create(context.Context, *CreateRequest, *User) error
+	Create(context.Context, *CreateRequest, *UserResponse) error
+	Login(context.Context, *LoginRequest, *UserResponse) error
 }
 
 func RegisterUsersHandler(s server.Server, hdlr UsersHandler, opts ...server.HandlerOption) error {
 	type users interface {
-		Call(ctx context.Context, in *Request, out *Response) error
-		Stream(ctx context.Context, stream server.Stream) error
-		PingPong(ctx context.Context, stream server.Stream) error
-		Create(ctx context.Context, in *CreateRequest, out *User) error
+		Create(ctx context.Context, in *CreateRequest, out *UserResponse) error
+		Login(ctx context.Context, in *LoginRequest, out *UserResponse) error
 	}
 	type Users struct {
 		users
@@ -195,85 +99,10 @@ type usersHandler struct {
 	UsersHandler
 }
 
-func (h *usersHandler) Call(ctx context.Context, in *Request, out *Response) error {
-	return h.UsersHandler.Call(ctx, in, out)
-}
-
-func (h *usersHandler) Stream(ctx context.Context, stream server.Stream) error {
-	m := new(StreamingRequest)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.UsersHandler.Stream(ctx, m, &usersStreamStream{stream})
-}
-
-type Users_StreamStream interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*StreamingResponse) error
-}
-
-type usersStreamStream struct {
-	stream server.Stream
-}
-
-func (x *usersStreamStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *usersStreamStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *usersStreamStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *usersStreamStream) Send(m *StreamingResponse) error {
-	return x.stream.Send(m)
-}
-
-func (h *usersHandler) PingPong(ctx context.Context, stream server.Stream) error {
-	return h.UsersHandler.PingPong(ctx, &usersPingPongStream{stream})
-}
-
-type Users_PingPongStream interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*Pong) error
-	Recv() (*Ping, error)
-}
-
-type usersPingPongStream struct {
-	stream server.Stream
-}
-
-func (x *usersPingPongStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *usersPingPongStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *usersPingPongStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *usersPingPongStream) Send(m *Pong) error {
-	return x.stream.Send(m)
-}
-
-func (x *usersPingPongStream) Recv() (*Ping, error) {
-	m := new(Ping)
-	if err := x.stream.Recv(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (h *usersHandler) Create(ctx context.Context, in *CreateRequest, out *User) error {
+func (h *usersHandler) Create(ctx context.Context, in *CreateRequest, out *UserResponse) error {
 	return h.UsersHandler.Create(ctx, in, out)
+}
+
+func (h *usersHandler) Login(ctx context.Context, in *LoginRequest, out *UserResponse) error {
+	return h.UsersHandler.Login(ctx, in, out)
 }

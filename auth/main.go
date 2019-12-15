@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/micro/go-micro/util/log"
+	"github.com/sirupsen/logrus"
 
 	"github.com/lbrulet/GoMicroservices/auth/handler"
 	auth "github.com/lbrulet/GoMicroservices/auth/proto/auth"
@@ -17,18 +17,23 @@ func main() {
 		micro.Version("0.1"),
 	)
 
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logger := logrus.WithFields(logrus.Fields{
+		"micro-service": "auth",
+	})
 	// Init to parse flags
 	service.Init()
 
 	// Register Handlers
-	auth.RegisterAuthHandler(service.Server(), &handler.Auth{
-		UsersService: users.NewUsersService("users", service.Client()),
+	_ = auth.RegisterAuthHandler(service.Server(), &handler.Auth{
+		UsersService: users.NewUsersService("go.micro.srv.users", service.Client()),
+		Logger:       logger,
 	})
 
 	// for handler use
 
 	// Run server
 	if err := service.Run(); err != nil {
-		log.Fatal(err)
+		logger.Fatal()
 	}
 }

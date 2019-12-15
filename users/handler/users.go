@@ -2,55 +2,76 @@ package handler
 
 import (
 	"context"
-
-	"github.com/micro/go-micro/util/log"
+	"github.com/jinzhu/gorm"
+	"github.com/lbrulet/GoMicroservices/users/models"
+	"github.com/micro/go-micro/errors"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 
 	users "github.com/lbrulet/GoMicroservices/users/proto/users"
 )
 
-type Users struct{}
-
-func (e *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users.User) error {
-	rsp.Username = req.Username
-	rsp.Password = req.Password
-	rsp.Email = req.Email
-	rsp.Id = 1
-	return nil
+type Users struct {
+	ServiceName string
+	Logger      *logrus.Entry
+	Database    *gorm.DB
 }
 
-// Call is a single request handler called via client.Call or the generated client code
-func (e *Users) Call(ctx context.Context, req *users.Request, rsp *users.Response) error {
-	log.Log("Received Users.Call request")
-	rsp.Msg = "Hello " + req.Name
-	return nil
-}
+func (e *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users.UserResponse) error {
+	e.Logger.Info("Received users.Create")
 
-// Stream is a server side stream handler called via client.Stream or the generated client code
-func (e *Users) Stream(ctx context.Context, req *users.StreamingRequest, stream users.Users_StreamStream) error {
-	log.Logf("Received Users.Stream request with count: %d", req.Count)
+	count := 0
+	e.Database.Table("users").Where("username = ?", req.Username).Or("email = ?", req.Email).Count(&count)
 
-	for i := 0; i < int(req.Count); i++ {
-		log.Logf("Responding: %d", i)
-		if err := stream.Send(&users.StreamingResponse{
-			Count: int64(i),
-		}); err != nil {
-			return err
-		}
+	if count != 0 {
+		e.Logger.Infof("User [%s, %s] already exist", req.Email, req.Username)
+		return errors.Conflict(e.ServiceName, "users already exist")
 	}
 
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
+	if err != nil {
+		e.Logger.Infof("User [%s, %s] already exist", req.Email, req.Username)
+		return errors.Conflict(e.ServiceName, "users already exist")
+	}
+
+	user := models.User{Username: req.Username, Email: req.Email, Password: string(hashed), IsAdmin: false, IsVerified: false}
+
+	if err := e.Database.Create(&user).Error; err != nil {
+		e.Logger.Fatalf("Internal error")
+		return errors.InternalServerError(e.ServiceName, "users already exist")
+	}
+
+	e.Logger.Infof("New User created - [%d, %s]", user.ID, user.Username)
+
+	rsp.User = UserToRpc(user)
 	return nil
 }
 
-// PingPong is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Users) PingPong(ctx context.Context, stream users.Users_PingPongStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		log.Logf("Got ping %v", req.Stroke)
-		if err := stream.Send(&users.Pong{Stroke: req.Stroke}); err != nil {
-			return err
-		}
+func (e *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.UserResponse) error {
+	e.Logger.Info("Received users.Login")
+
+	user := models.User{}
+	if notFound := e.Database.Where("username = ?", req.Username).First(&user).RecordNotFound(); notFound {
+		e.Logger.Info("User not found")
+		return errors.BadRequest(e.ServiceName, "username or password incorrect")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		e.Logger.Info("Password does not match")
+		return errors.BadRequest(e.ServiceName, "username or password incorrect")
+	}
+
+	rsp.User = UserToRpc(user)
+	return nil
+}
+
+func UserToRpc(user models.User) *users.User {
+	return &users.User{
+		Id:         int64(user.ID),
+		Username:   user.Username,
+		Email:      user.Email,
+		Password:   user.Password,
+		IsAdmin:    user.IsAdmin,
+		IsVerified: user.IsVerified,
 	}
 }
