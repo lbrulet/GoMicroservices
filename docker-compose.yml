@@ -1,0 +1,12 @@
+micro:
+  image: micro/micro:latest
+  ports:
+    - "8082:8082"
+api:
+  build: ./auth
+  command: ./auth-api
+  links:
+    - micro
+  ports:
+    - "8080:8080"
+
