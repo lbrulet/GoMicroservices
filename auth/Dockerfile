@@ -1,3 +1,3 @@
 FROM golang
-ADD . ./
-CMD ["/auth-api"]
+ADD . /
+ENTRYPOINT ["/auth-api"]

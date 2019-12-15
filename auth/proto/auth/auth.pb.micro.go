@@ -6,7 +6,6 @@ package go_micro_api_auth
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	proto1 "github.com/micro/go-micro/api/proto"
 	math "math"
 )
 
@@ -35,7 +34,8 @@ var _ server.Option
 // Client API for Auth service
 
 type AuthService interface {
-	Call(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.Response, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*Response, error)
+	Register(ctx context.Context, in *RegisterRequest, opts ...client.CallOption) (*Response, error)
 }
 
 type authService struct {
@@ -56,9 +56,19 @@ func NewAuthService(name string, c client.Client) AuthService {
 	}
 }
 
-func (c *authService) Call(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.Response, error) {
-	req := c.c.NewRequest(c.name, "Auth.Call", in)
-	out := new(proto1.Response)
+func (c *authService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "Auth.Login", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authService) Register(ctx context.Context, in *RegisterRequest, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "Auth.Register", in)
+	out := new(Response)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -69,12 +79,14 @@ func (c *authService) Call(ctx context.Context, in *proto1.Request, opts ...clie
 // Server API for Auth service
 
 type AuthHandler interface {
-	Call(context.Context, *proto1.Request, *proto1.Response) error
+	Login(context.Context, *LoginRequest, *Response) error
+	Register(context.Context, *RegisterRequest, *Response) error
 }
 
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
-		Call(ctx context.Context, in *proto1.Request, out *proto1.Response) error
+		Login(ctx context.Context, in *LoginRequest, out *Response) error
+		Register(ctx context.Context, in *RegisterRequest, out *Response) error
 	}
 	type Auth struct {
 		auth
@@ -87,6 +99,10 @@ type authHandler struct {
 	AuthHandler
 }
 
-func (h *authHandler) Call(ctx context.Context, in *proto1.Request, out *proto1.Response) error {
-	return h.AuthHandler.Call(ctx, in, out)
+func (h *authHandler) Login(ctx context.Context, in *LoginRequest, out *Response) error {
+	return h.AuthHandler.Login(ctx, in, out)
+}
+
+func (h *authHandler) Register(ctx context.Context, in *RegisterRequest, out *Response) error {
+	return h.AuthHandler.Register(ctx, in, out)
 }

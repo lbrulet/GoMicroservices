@@ -5,6 +5,7 @@ import (
 
 	"github.com/lbrulet/GoMicroservices/auth/handler"
 	auth "github.com/lbrulet/GoMicroservices/auth/proto/auth"
+	users "github.com/lbrulet/GoMicroservices/users/proto/users"
 	"github.com/micro/go-micro"
 )
 
@@ -12,7 +13,7 @@ func main() {
 	// New Service
 	// Create service
 	service := micro.NewService(
-		micro.Name("go.micro.api.auth"),
+		micro.Name("go.micro.api.api"),
 		micro.Version("0.1"),
 	)
 
@@ -21,8 +22,7 @@ func main() {
 
 	// Register Handlers
 	auth.RegisterAuthHandler(service.Server(), &handler.Auth{
-		// Create Service Client
-		// Client: hello.NewSayService("go.micro.srv.greeter", service.Client()),
+		UsersService: users.NewUsersService("users", service.Client()),
 	})
 
 	// for handler use
