@@ -22,7 +22,7 @@ func (e *Auth) Login(ctx context.Context, req *auth.LoginRequest, rsp *auth.Logi
 
 	if len(req.Username) == 0 || len(req.Password) == 0 {
 		e.Logger.Info("Content missing in payload")
-		return errors.BadRequest(e.ServiceName, "content missing")
+		return errors.BadRequest(e.ServiceName, ERROR_CONTENT_MISSING)
 	}
 
 	response, err := e.UsersService.Login(context.TODO(), &go_micro_srv_users.LoginRequest{
@@ -38,7 +38,7 @@ func (e *Auth) Login(ctx context.Context, req *auth.LoginRequest, rsp *auth.Logi
 	token, err := e.JwtService.CreateToken(int(response.User.Id))
 	if err != nil {
 		e.Logger.Info(err.Error())
-		return errors.InternalServerError(e.ServiceName, "internal server error")
+		return errors.InternalServerError(e.ServiceName, ERROR_UNEXPECTED)
 	}
 
 	e.Logger.Infof("User logged as [%d, %s]", response.User.Id, response.User.Username)
@@ -54,7 +54,7 @@ func (e *Auth) Register(ctx context.Context, req *auth.RegisterRequest, rsp *aut
 
 	if len(req.Username) == 0 || len(req.Password) == 0 || len(req.Email) == 0 {
 		e.Logger.Info("Content missing in payload")
-		return errors.BadRequest(e.ServiceName, "content missing")
+		return errors.BadRequest(e.ServiceName, ERROR_UNEXPECTED)
 	}
 
 	response, err := e.UsersService.Create(context.TODO(), &go_micro_srv_users.CreateRequest{
@@ -78,7 +78,7 @@ func (e *Auth) VerifyToken(ctx context.Context, req *auth.TokenRequest, rsp *aut
 
 	id, err := e.JwtService.VerifyToken(req.Token)
 	if err != nil {
-		return errors.BadRequest(e.ServiceName, "invalid token")
+		return errors.BadRequest(e.ServiceName, ERROR_TOKEN_INVALID)
 	}
 	rsp.Id = int32(id)
 	return nil
