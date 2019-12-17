@@ -20,7 +20,7 @@ PostgreSQL:
     - /srv/docker/postgresql:/var/lib/postgresql
 micro:
   image: micro/micro:latest
-  command: --registry_address=consul:8500 api --handler=rpc
+  command: --registry_address=consul:8500 api
   links:
     - consul
   ports:

@@ -1,12 +1,11 @@
 package main
 
 import (
-	"github.com/lbrulet/GoMicroservices/users/database"
+	"github.com/lbrulet/GoMicroservices/users/database/postgreSQL"
 	"github.com/lbrulet/GoMicroservices/users/handler"
+	users "github.com/lbrulet/GoMicroservices/users/proto/users"
 	"github.com/micro/go-micro"
 	"github.com/sirupsen/logrus"
-
-	users "github.com/lbrulet/GoMicroservices/users/proto/users"
 )
 
 const (
@@ -19,7 +18,6 @@ func main() {
 		micro.Name("go.micro.srv.users"),
 		micro.Version("0.1"),
 	)
-
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logger := logrus.WithFields(logrus.Fields{
 		"micro-service": "users",
@@ -27,15 +25,17 @@ func main() {
 	// Initialise service
 	service.Init()
 
-	dbService, err := database.ConnectDatabase()
+	db, err := postgreSQL.PostgresConnexion()
 	if err != nil {
 		logger.Fatal(err)
 		return
 	}
+	repository := postgreSQL.NewPostgresRepository(db)
+
 	// Register Handler
 	if err := users.RegisterUsersHandler(service.Server(), &handler.Users{
 		Logger:   logger,
-		Database: dbService,
+		Database: repository,
 		ServiceName: SERVICENAME,
 	}); err != nil {
 		logger.Fatal(err)
