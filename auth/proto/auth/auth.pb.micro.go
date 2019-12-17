@@ -35,8 +35,9 @@ var _ server.Option
 // Client API for Auth service
 
 type AuthService interface {
-	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*Response, error)
-	Register(ctx context.Context, in *RegisterRequest, opts ...client.CallOption) (*Response, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error)
+	Register(ctx context.Context, in *RegisterRequest, opts ...client.CallOption) (*RegisterResponse, error)
+	VerifyToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*ClaimsResponse, error)
 }
 
 type authService struct {
@@ -57,9 +58,9 @@ func NewAuthService(name string, c client.Client) AuthService {
 	}
 }
 
-func (c *authService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*Response, error) {
+func (c *authService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error) {
 	req := c.c.NewRequest(c.name, "Auth.Login", in)
-	out := new(Response)
+	out := new(LoginResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -67,9 +68,19 @@ func (c *authService) Login(ctx context.Context, in *LoginRequest, opts ...clien
 	return out, nil
 }
 
-func (c *authService) Register(ctx context.Context, in *RegisterRequest, opts ...client.CallOption) (*Response, error) {
+func (c *authService) Register(ctx context.Context, in *RegisterRequest, opts ...client.CallOption) (*RegisterResponse, error) {
 	req := c.c.NewRequest(c.name, "Auth.Register", in)
-	out := new(Response)
+	out := new(RegisterResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authService) VerifyToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*ClaimsResponse, error) {
+	req := c.c.NewRequest(c.name, "Auth.VerifyToken", in)
+	out := new(ClaimsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -80,14 +91,16 @@ func (c *authService) Register(ctx context.Context, in *RegisterRequest, opts ..
 // Server API for Auth service
 
 type AuthHandler interface {
-	Login(context.Context, *LoginRequest, *Response) error
-	Register(context.Context, *RegisterRequest, *Response) error
+	Login(context.Context, *LoginRequest, *LoginResponse) error
+	Register(context.Context, *RegisterRequest, *RegisterResponse) error
+	VerifyToken(context.Context, *TokenRequest, *ClaimsResponse) error
 }
 
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
-		Login(ctx context.Context, in *LoginRequest, out *Response) error
-		Register(ctx context.Context, in *RegisterRequest, out *Response) error
+		Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error
+		Register(ctx context.Context, in *RegisterRequest, out *RegisterResponse) error
+		VerifyToken(ctx context.Context, in *TokenRequest, out *ClaimsResponse) error
 	}
 	type Auth struct {
 		auth
@@ -100,10 +113,14 @@ type authHandler struct {
 	AuthHandler
 }
 
-func (h *authHandler) Login(ctx context.Context, in *LoginRequest, out *Response) error {
+func (h *authHandler) Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error {
 	return h.AuthHandler.Login(ctx, in, out)
 }
 
-func (h *authHandler) Register(ctx context.Context, in *RegisterRequest, out *Response) error {
+func (h *authHandler) Register(ctx context.Context, in *RegisterRequest, out *RegisterResponse) error {
 	return h.AuthHandler.Register(ctx, in, out)
+}
+
+func (h *authHandler) VerifyToken(ctx context.Context, in *TokenRequest, out *ClaimsResponse) error {
+	return h.AuthHandler.VerifyToken(ctx, in, out)
 }

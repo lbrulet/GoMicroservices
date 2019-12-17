@@ -28,6 +28,7 @@ func main() {
 	_ = auth.RegisterAuthHandler(service.Server(), &handler.Auth{
 		UsersService: users.NewUsersService("go.micro.srv.users", service.Client()),
 		Logger:       logger,
+		JwtService:   handler.NewJwtService("pingouin123"),
 	})
 
 	// for handler use
