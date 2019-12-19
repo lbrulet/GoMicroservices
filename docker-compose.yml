@@ -32,14 +32,16 @@ micro-web:
     - consul
   ports:
     - "8082:8082"
-api:
-  build: ./auth
+auth-gateway:
+  container_name: "auth-gateway"
+  build: ./auth-gateway
   command: --registry_address=consul:8300
   links:
-    - users
+    - users-service
     - consul
-users:
-  build: ./users
+users-service:
+  container_name: "users-service"
+  build: ./users-service
   command: --registry_address=consul:8300
   links:
     - PostgreSQL
