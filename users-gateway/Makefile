@@ -9,7 +9,7 @@ proto:
 .PHONY: build
 build: proto
 
-	go build -o users-api *.go
+	go build -o users-gateway *.go
 
 .PHONY: test
 test:

@@ -39,6 +39,13 @@ auth-gateway:
   links:
     - users-service
     - consul
+users-gateway:
+  container_name: "users-gateway"
+  build: ./users-gateway
+  command: --registry_address=consul:8300
+  links:
+    - users-service
+    - consul
 users-service:
   container_name: "users-service"
   build: ./users-service

@@ -13,7 +13,7 @@ func main() {
 	// New Service
 	// Create service
 	service := micro.NewService(
-		micro.Name("go.micro.api.api"),
+		micro.Name("go.micro.api.auth"),
 		micro.Version("0.1"),
 	)
 

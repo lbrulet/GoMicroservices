@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
+	"github.com/lbrulet/GoMicroservices/users-service/proto/users"
 	"github.com/micro/go-micro/util/log"
 
 	"github.com/micro/go-micro"
 	"github.com/lbrulet/GoMicroservices/users-gateway/handler"
-	"github.com/lbrulet/GoMicroservices/users-gateway/client"
 
 	users "github.com/lbrulet/GoMicroservices/users-gateway/proto/users"
 )
@@ -14,17 +15,22 @@ func main() {
 	// New Service
 	service := micro.NewService(
 		micro.Name("go.micro.api.users"),
-		micro.Version("latest"),
+		micro.Version("0.1"),
 	)
+
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logger := logrus.WithFields(logrus.Fields{
+		"micro-service": "users-gateway",
+	})
 
 	// Initialise service
-	service.Init(
-		// create wrap for the Users srv client
-		micro.WrapHandler(client.UsersWrapper(service)),
-	)
+	service.Init()
 
 	// Register Handler
-	users.RegisterUsersHandler(service.Server(), new(handler.Users))
+	_ = users.RegisterUsersHandler(service.Server(), &handler.Users{
+		UsersService: go_micro_srv_users.NewUsersService("go.micro.srv.users-service", service.Client()),
+		Logger: logger,
+	})
 
 	// Run service
 	if err := service.Run(); err != nil {

@@ -22,35 +22,27 @@ type Users struct {
 func (e *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users.UserResponse) error {
 	e.Logger.Info("Received users-service.Create")
 
-	count, err := e.Database.CountByUsernameAndEmail(req.Username, req.Email)
-	if err != nil {
+	if len(req.Password) == 0 {
 		return errors.InternalServerError(e.ServiceName, ERROR_UNEXPECTED)
 	}
 
+	count := e.Database.CountByUsernameAndEmail(req.Username, req.Email)
 	if count != 0 {
 		e.Logger.Infof("User [%s, %s] already exist", req.Email, req.Username)
 		return errors.Conflict(e.ServiceName, ERROR_USER_ALREADY_EXIST)
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
-	if err != nil {
-		e.Logger.Infof("User [%s, %s] already exist", req.Email, req.Username)
-		return errors.Conflict(e.ServiceName, ERROR_USER_ALREADY_EXIST)
-	}
+	hashed, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
 
 	user := models.User{Username: req.Username, Email: req.Email, Password: string(hashed), IsAdmin: false, IsVerified: false}
 
-	if err := e.Database.CreateUser(user); err != nil {
-		e.Logger.Fatalf(ERROR_UNEXPECTED)
-		return errors.InternalServerError(e.ServiceName, ERROR_UNEXPECTED)
-	}
+	e.Database.CreateUser(user)
 
 	e.Logger.Infof("New User created - [%d, %s]", user.ID, user.Username)
 
 	rsp.User = UserToRpc(user)
 	return nil
 }
-
 // Login is called as service by an API and will log the user and generate credentials
 func (e *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.UserResponse) error {
 	e.Logger.Info("Received users-service.Login")
@@ -60,16 +52,14 @@ func (e *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.U
 		e.Logger.Info("User not found")
 		return errors.BadRequest(e.ServiceName, ERROR_USER_USERNAME_OR_PASSWORD_INVALID)
 	}
-
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		e.Logger.Info("Password does not match")
 		return errors.BadRequest(e.ServiceName, ERROR_USER_USERNAME_OR_PASSWORD_INVALID)
 	}
-
 	rsp.User = UserToRpc(user)
 	return nil
 }
-
+// UserToRpc is using to convert a model to an rpc model
 func UserToRpc(user models.User) *users.User {
 	return &users.User{
 		Id:         int64(user.ID),

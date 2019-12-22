@@ -2,10 +2,10 @@ package handler
 
 import (
 	"context"
+	"github.com/lbrulet/GoMicroservices/users-service/proto/users"
 	"github.com/sirupsen/logrus"
 
 	auth "github.com/lbrulet/GoMicroservices/auth-gateway/proto/auth"
-	"github.com/lbrulet/GoMicroservices/users-service/proto/users"
 	"github.com/micro/go-micro/errors"
 )
 

@@ -31,6 +31,7 @@ func main() {
 		return
 	}
 	repository := postgreSQL.NewPostgresRepository(db)
+	repository.MigrateDatabase()
 
 	// Register Handler
 	if err := users.RegisterUsersHandler(service.Server(), &handler.Users{

@@ -1,3 +1,3 @@
-FROM alpine
-ADD users-api /users-api
-ENTRYPOINT [ "/users-api" ]
+FROM golang
+ADD . /
+ENTRYPOINT ["/users-gateway"]

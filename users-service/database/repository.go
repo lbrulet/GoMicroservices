@@ -7,7 +7,9 @@ import (
 
 // Repository is used to create an interface between all sort of database
 type Repository interface {
-	CountByUsernameAndEmail(username, email string) (int, error)
+	CountByUsernameAndEmail(username, email string) int
 	GetByUsername(username string) (models.User, error)
-	CreateUser(user models.User) error
+	CreateUser(user models.User)
+	ResetDatabase()
+	MigrateDatabase()
 }
